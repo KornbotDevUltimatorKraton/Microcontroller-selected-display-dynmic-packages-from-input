@@ -118,6 +118,15 @@ async def interact_pins(encoded_data: str):
 
     return HTMLResponse(content=html)
 
+# Component Package Database JSON endpoint
+@app.get("/api/component_packages_db")
+async def get_component_packages_db():
+    db_path = Path("component_packages_db.json")
+    if db_path.exists():
+        content = json.loads(db_path.read_text(encoding="utf-8"))
+        return JSONResponse(content=content)
+    return JSONResponse(content={"error": "component_packages_db.json not found"}, status_code=404)
+
 # CORS Proxy for MCU Database Structure
 @app.post("/api/mcus_dbpath")
 async def proxy_mcus_dbpath(request: Request):
@@ -131,7 +140,7 @@ async def proxy_mcus_dbpath(request: Request):
 async def proxy_get_component_gpios(request: Request):
     payload = await request.json()
 
-    # ── MOCK TEST OVERRIDE (Set USE_MOCK_TEST_DATA = True to test multi-protocol colors) ──
+    # ── MOCK TEST OVERRIDE (Set USE_MOCK_TEST_DATA = False to test multi-protocol colors) ──
     if USE_MOCK_TEST_DATA:
         return JSONResponse(content=MOCK_ALL_PROTOCOLS_DATA)
 

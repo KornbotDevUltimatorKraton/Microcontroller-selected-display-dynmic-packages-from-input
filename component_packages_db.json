@@ -1,0 +1,634 @@
+{
+  "I2C_mux": {
+    "TCA9548A": {
+      "TSSOP24": {
+        "A0": {
+          "1": {
+            "Input": "Address 0"
+          }
+        },
+        "A1": {
+          "2": {
+            "Input": "Address 1"
+          }
+        },
+        "RESET": {
+          "3": {
+            "Input": "Reset Active Low"
+          }
+        },
+        "SD0": {
+          "4": {
+            "I2C": "Channel 0 Data"
+          }
+        },
+        "SC0": {
+          "5": {
+            "I2C": "Channel 0 Clock"
+          }
+        },
+        "SD1": {
+          "6": {
+            "I2C": "Channel 1 Data"
+          }
+        },
+        "SC1": {
+          "7": {
+            "I2C": "Channel 1 Clock"
+          }
+        },
+        "SD2": {
+          "8": {
+            "I2C": "Channel 2 Data"
+          }
+        },
+        "SC2": {
+          "9": {
+            "I2C": "Channel 2 Clock"
+          }
+        },
+        "SD3": {
+          "10": {
+            "I2C": "Channel 3 Data"
+          }
+        },
+        "SC3": {
+          "11": {
+            "I2C": "Channel 3 Clock"
+          }
+        },
+        "VSS": {
+          "12": {
+            "Power": "Ground"
+          }
+        },
+        "SD4": {
+          "13": {
+            "I2C": "Channel 4 Data"
+          }
+        },
+        "SC4": {
+          "14": {
+            "I2C": "Channel 4 Clock"
+          }
+        },
+        "SD5": {
+          "15": {
+            "I2C": "Channel 5 Data"
+          }
+        },
+        "SC5": {
+          "16": {
+            "I2C": "Channel 5 Clock"
+          }
+        },
+        "SD6": {
+          "17": {
+            "I2C": "Channel 6 Data"
+          }
+        },
+        "SC6": {
+          "18": {
+            "I2C": "Channel 6 Clock"
+          }
+        },
+        "SD7": {
+          "19": {
+            "I2C": "Channel 7 Data"
+          }
+        },
+        "SC7": {
+          "20": {
+            "I2C": "Channel 7 Clock"
+          }
+        },
+        "A2": {
+          "21": {
+            "Input": "Address 2"
+          }
+        },
+        "SCL": {
+          "22": {
+            "I2C": "Master Clock"
+          }
+        },
+        "SDA": {
+          "23": {
+            "I2C": "Master Data"
+          }
+        },
+        "VDD": {
+          "24": {
+            "Power": "Supply"
+          }
+        }
+      }
+    }
+  },
+  "Servo_mux": {
+    "PCA9685": {
+      "TSSOP28": {
+        "A0": {
+          "1": {
+            "Input": "Address 0"
+          }
+        },
+        "A1": {
+          "2": {
+            "Input": "Address 1"
+          }
+        },
+        "A2": {
+          "3": {
+            "Input": "Address 2"
+          }
+        },
+        "A3": {
+          "4": {
+            "Input": "Address 3"
+          }
+        },
+        "A4": {
+          "5": {
+            "Input": "Address 4"
+          }
+        },
+        "PWM0": {
+          "6": {
+            "PWM": "Output 0"
+          }
+        },
+        "PWM1": {
+          "7": {
+            "PWM": "Output 1"
+          }
+        },
+        "PWM2": {
+          "8": {
+            "PWM": "Output 2"
+          }
+        },
+        "PWM3": {
+          "9": {
+            "PWM": "Output 3"
+          }
+        },
+        "VSS": {
+          "10": {
+            "Power": "Ground"
+          }
+        },
+        "PWM4": {
+          "11": {
+            "PWM": "Output 4"
+          }
+        },
+        "PWM5": {
+          "12": {
+            "PWM": "Output 5"
+          }
+        },
+        "PWM6": {
+          "13": {
+            "PWM": "Output 6"
+          }
+        },
+        "PWM7": {
+          "14": {
+            "PWM": "Output 7"
+          }
+        },
+        "PWM8": {
+          "15": {
+            "PWM": "Output 8"
+          }
+        },
+        "PWM9": {
+          "16": {
+            "PWM": "Output 9"
+          }
+        },
+        "PWM10": {
+          "17": {
+            "PWM": "Output 10"
+          }
+        },
+        "PWM11": {
+          "18": {
+            "PWM": "Output 11"
+          }
+        },
+        "PWM12": {
+          "19": {
+            "PWM": "Output 12"
+          }
+        },
+        "PWM13": {
+          "20": {
+            "PWM": "Output 13"
+          }
+        },
+        "PWM14": {
+          "21": {
+            "PWM": "Output 14"
+          }
+        },
+        "PWM15": {
+          "22": {
+            "PWM": "Output 15"
+          }
+        },
+        "OE": {
+          "23": {
+            "Input": "Output Enable"
+          }
+        },
+        "A5": {
+          "24": {
+            "Input": "Address 5"
+          }
+        },
+        "EXTCLK": {
+          "25": {
+            "Input": "External Clock"
+          }
+        },
+        "SCL": {
+          "26": {
+            "I2C": "Clock"
+          }
+        },
+        "SDA": {
+          "27": {
+            "I2C": "Data"
+          }
+        },
+        "VDD": {
+          "28": {
+            "Power": "Supply"
+          }
+        }
+      }
+    }
+  },
+  "Sensors": {
+    "Radar": {
+      "DIP4": {
+        "VCC": {
+          "1": {
+            "Power": "Supply"
+          }
+        },
+        "OUT": {
+          "2": {
+            "ADC": "Analog Signal Out"
+          }
+        },
+        "GND": {
+          "3": {
+            "Power": "Ground"
+          }
+        },
+        "EN": {
+          "4": {
+            "Input": "Enable"
+          }
+        }
+      }
+    },
+    "ICM20948": {
+      "QFN24": {
+        "VDDIO": {
+          "1": {
+            "Power": "Supply Digital"
+          }
+        },
+        "SCL": {
+          "2": {
+            "I2C": "Clock"
+          }
+        },
+        "SDA": {
+          "3": {
+            "I2C": "Data"
+          }
+        },
+        "AD0": {
+          "4": {
+            "Input": "I2C Address"
+          }
+        },
+        "INT": {
+          "5": {
+            "Output": "Interrupt"
+          }
+        },
+        "FSYNC": {
+          "6": {
+            "Input": "Frame Sync"
+          }
+        },
+        "AUX_CL": {
+          "7": {
+            "I2C": "Auxiliary Clock"
+          }
+        },
+        "AUX_DA": {
+          "8": {
+            "I2C": "Auxiliary Data"
+          }
+        },
+        "VSS": {
+          "9": {
+            "Power": "Ground"
+          }
+        },
+        "REGOUT": {
+          "10": {
+            "Power": "Regulator Out"
+          }
+        },
+        "VDD": {
+          "11": {
+            "Power": "Supply Power"
+          }
+        },
+        "NC1": {
+          "12": {
+            "Unused": "No Connect"
+          }
+        },
+        "NC2": {
+          "13": {
+            "Unused": "No Connect"
+          }
+        },
+        "NC3": {
+          "14": {
+            "Unused": "No Connect"
+          }
+        },
+        "NC4": {
+          "15": {
+            "Unused": "No Connect"
+          }
+        },
+        "NC5": {
+          "16": {
+            "Unused": "No Connect"
+          }
+        },
+        "NC6": {
+          "17": {
+            "Unused": "No Connect"
+          }
+        },
+        "NC7": {
+          "18": {
+            "Unused": "No Connect"
+          }
+        },
+        "NC8": {
+          "19": {
+            "Unused": "No Connect"
+          }
+        },
+        "NC9": {
+          "20": {
+            "Unused": "No Connect"
+          }
+        },
+        "NC10": {
+          "21": {
+            "Unused": "No Connect"
+          }
+        },
+        "NC11": {
+          "22": {
+            "Unused": "No Connect"
+          }
+        },
+        "NC12": {
+          "23": {
+            "Unused": "No Connect"
+          }
+        },
+        "GND": {
+          "24": {
+            "Power": "Ground"
+          }
+        }
+      }
+    },
+    "MPU6050": {
+      "QFN24": {
+        "CLKIN": {
+          "1": {
+            "Input": "Clock In"
+          }
+        },
+        "AUX_DA": {
+          "2": {
+            "I2C": "Auxiliary Data"
+          }
+        },
+        "AUX_CL": {
+          "3": {
+            "I2C": "Auxiliary Clock"
+          }
+        },
+        "VADJ": {
+          "4": {
+            "Power": "Voltage Adjust"
+          }
+        },
+        "REGOUT": {
+          "5": {
+            "Power": "Regulator Out"
+          }
+        },
+        "FSYNC": {
+          "6": {
+            "Input": "Frame Sync"
+          }
+        },
+        "INT": {
+          "7": {
+            "Output": "Interrupt"
+          }
+        },
+        "VDD": {
+          "8": {
+            "Power": "Supply"
+          }
+        },
+        "GND": {
+          "9": {
+            "Power": "Ground"
+          }
+        },
+        "RESERVED": {
+          "10": {
+            "Unused": "Reserved"
+          }
+        },
+        "FSYNC2": {
+          "11": {
+            "Input": "Frame Sync 2"
+          }
+        },
+        "INT2": {
+          "12": {
+            "Output": "Interrupt 2"
+          }
+        },
+        "VDDIO": {
+          "13": {
+            "Power": "Digital IO Supply"
+          }
+        },
+        "NC1": {
+          "14": {
+            "Unused": "No Connect"
+          }
+        },
+        "NC2": {
+          "15": {
+            "Unused": "No Connect"
+          }
+        },
+        "NC3": {
+          "16": {
+            "Unused": "No Connect"
+          }
+        },
+        "NC4": {
+          "17": {
+            "Unused": "No Connect"
+          }
+        },
+        "GND2": {
+          "18": {
+            "Power": "Ground"
+          }
+        },
+        "RES": {
+          "19": {
+            "Unused": "Reserved"
+          }
+        },
+        "CPOUT": {
+          "20": {
+            "Power": "Charge Pump Out"
+          }
+        },
+        "RES2": {
+          "21": {
+            "Unused": "Reserved"
+          }
+        },
+        "AD0": {
+          "22": {
+            "Input": "Address 0"
+          }
+        },
+        "SCL": {
+          "23": {
+            "I2C": "Clock"
+          }
+        },
+        "SDA": {
+          "24": {
+            "I2C": "Data"
+          }
+        }
+      }
+    },
+    "VL53L0X": {
+      "DIP6": {
+        "VDD": {
+          "1": {
+            "Power": "Supply"
+          }
+        },
+        "GND": {
+          "2": {
+            "Power": "Ground"
+          }
+        },
+        "SCL": {
+          "3": {
+            "I2C": "Clock"
+          }
+        },
+        "SDA": {
+          "4": {
+            "I2C": "Data"
+          }
+        },
+        "GPIO1": {
+          "5": {
+            "Output": "Interrupt Out"
+          }
+        },
+        "XSHUT": {
+          "6": {
+            "Input": "Shutdown Active Low"
+          }
+        }
+      }
+    }
+  },
+  "GPS": {
+    "NEO6M": {
+      "DIP4": {
+        "VCC": {
+          "1": {
+            "Power": "Supply 3.3V-5V"
+          }
+        },
+        "RX": {
+          "2": {
+            "UART": "Serial Receive"
+          }
+        },
+        "TX": {
+          "3": {
+            "UART": "Serial Transmit"
+          }
+        },
+        "GND": {
+          "4": {
+            "Power": "Ground"
+          }
+        }
+      }
+    }
+  },
+  "Display": {
+    "SSD1306_OLED": {
+      "DIP4": {
+        "GND": {
+          "1": {
+            "Power": "Ground"
+          }
+        },
+        "VCC": {
+          "2": {
+            "Power": "Supply 3.3V-5V"
+          }
+        },
+        "SCL": {
+          "3": {
+            "I2C": "Clock"
+          }
+        },
+        "SDA": {
+          "4": {
+            "I2C": "Data"
+          }
+        }
+      }
+    }
+  }
+}
