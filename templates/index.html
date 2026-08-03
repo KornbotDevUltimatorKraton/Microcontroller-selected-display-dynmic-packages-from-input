@@ -843,8 +843,81 @@
 
                 // Only draw text if it's not a generic NC or we want all of them. Let's draw all.
                 // Make active pins brighter text
-                const textColor = (pData.type === 'active' || pData.type === 'power' || pData.type === 'gnd') ? 'var(--text-main)' : 'var(--text-muted)';
+                const textColor = (pData.type === 'active' || pData.type === 'power' || pData.type === 'gnd' || pData.type === 'i2c' || pData.type === 'spi' || pData.type === 'uart' || pData.type === 'pwm' || pData.type === 'adc') ? 'var(--text-main)' : 'var(--text-muted)';
                 svg += `<text x="${labelX}" y="${labelY}" font-family="JetBrains Mono, monospace" font-size="10" fill="${textColor}" text-anchor="${anchor}" dominant-baseline="central" ${transform}>${pData.name}</text>`;
+
+                // ── Eagle PCB Schematic Electrical Symbols (Power & Ground) ────────
+                const pinUpper = pData.name.toUpperCase();
+                const isPower = (pData.type === 'power') || pinUpper.includes('VDD') || pinUpper.includes('VCC') || pinUpper.includes('VBAT') || pinUpper.includes('VREF');
+                const isGnd = (pData.type === 'gnd') || pinUpper.includes('VSS') || pinUpper.includes('GND') || pinUpper.includes('VSSA');
+
+                if (isPower || isGnd) {
+                    let symX = labelX, symY = labelY;
+                    const symColor = isPower ? 'var(--pin-power)' : 'var(--pin-gnd)';
+                    const symOffset = 55; // Offset past the pin text label
+
+                    if (i <= pinsPerSide) {
+                        // Left side
+                        symX = x - symOffset;
+                        symY = y + (height / 2);
+                        if (isPower) {
+                            // Eagle Power VCC Arrow (pointing left)
+                            svg += `<polygon points="${symX},${symY} ${symX+8},${symY-5} ${symX+8},${symY+5}" fill="${symColor}" />`;
+                            svg += `<line x1="${symX+8}" y1="${symY}" x2="${symX+20}" y2="${symY}" stroke="${symColor}" stroke-width="2"/>`;
+                        } else {
+                            // Eagle Ground Symbol (pointing left)
+                            svg += `<line x1="${symX+12}" y1="${symY}" x2="${symX+22}" y2="${symY}" stroke="${symColor}" stroke-width="2"/>`;
+                            svg += `<line x1="${symX+12}" y1="${symY-8}" x2="${symX+12}" y2="${symY+8}" stroke="${symColor}" stroke-width="2"/>`;
+                            svg += `<line x1="${symX+8}" y1="${symY-5}" x2="${symX+8}" y2="${symY+5}" stroke="${symColor}" stroke-width="2"/>`;
+                            svg += `<line x1="${symX+4}" y1="${symY-2}" x2="${symX+4}" y2="${symY+2}" stroke="${symColor}" stroke-width="2"/>`;
+                        }
+                    } else if (i <= pinsPerSide * 2) {
+                        // Bottom side
+                        symX = x + (width / 2);
+                        symY = y + height + symOffset;
+                        if (isPower) {
+                            // Eagle Power VCC Arrow (pointing down)
+                            svg += `<polygon points="${symX},${symY+8} ${symX-5},${symY} ${symX+5},${symY}" fill="${symColor}" />`;
+                            svg += `<line x1="${symX}" y1="${symY}" x2="${symX}" y2="${symY-12}" stroke="${symColor}" stroke-width="2"/>`;
+                        } else {
+                            // Eagle Ground Symbol (pointing down)
+                            svg += `<line x1="${symX}" y1="${symY-12}" x2="${symX}" y2="${symY-4}" stroke="${symColor}" stroke-width="2"/>`;
+                            svg += `<line x1="${symX-8}" y1="${symY-4}" x2="${symX+8}" y2="${symY-4}" stroke="${symColor}" stroke-width="2"/>`;
+                            svg += `<line x1="${symX-5}" y1="${symY}" x2="${symX+5}" y2="${symY}" stroke="${symColor}" stroke-width="2"/>`;
+                            svg += `<line x1="${symX-2}" y1="${symY+4}" x2="${symX+2}" y2="${symY+4}" stroke="${symColor}" stroke-width="2"/>`;
+                        }
+                    } else if (i <= pinsPerSide * 3) {
+                        // Right side
+                        symX = x + width + symOffset;
+                        symY = y + (height / 2);
+                        if (isPower) {
+                            // Eagle Power VCC Arrow (pointing right)
+                            svg += `<polygon points="${symX+8},${symY} ${symX},${symY-5} ${symX},${symY+5}" fill="${symColor}" />`;
+                            svg += `<line x1="${symX}" y1="${symY}" x2="${symX-12}" y2="${symY}" stroke="${symColor}" stroke-width="2"/>`;
+                        } else {
+                            // Eagle Ground Symbol (pointing right)
+                            svg += `<line x1="${symX-12}" y1="${symY}" x2="${symX-2}" y2="${symY}" stroke="${symColor}" stroke-width="2"/>`;
+                            svg += `<line x1="${symX-2}" y1="${symY-8}" x2="${symX-2}" y2="${symY+8}" stroke="${symColor}" stroke-width="2"/>`;
+                            svg += `<line x1="${symX+2}" y1="${symY-5}" x2="${symX+2}" y2="${symY+5}" stroke="${symColor}" stroke-width="2"/>`;
+                            svg += `<line x1="${symX+6}" y1="${symY-2}" x2="${symX+6}" y2="${symY+2}" stroke="${symColor}" stroke-width="2"/>`;
+                        }
+                    } else {
+                        // Top side
+                        symX = x + (width / 2);
+                        symY = y - symOffset;
+                        if (isPower) {
+                            // Eagle Power VCC Arrow (pointing up)
+                            svg += `<polygon points="${symX},${symY-8} ${symX-5},${symY} ${symX+5},${symY}" fill="${symColor}" />`;
+                            svg += `<line x1="${symX}" y1="${symY}" x2="${symX}" y2="${symY+12}" stroke="${symColor}" stroke-width="2"/>`;
+                        } else {
+                            // Eagle Ground Symbol (pointing up)
+                            svg += `<line x1="${symX}" y1="${symY+12}" x2="${symX}" y2="${symY+4}" stroke="${symColor}" stroke-width="2"/>`;
+                            svg += `<line x1="${symX-8}" y1="${symY+4}" x2="${symX+8}" y2="${symY+4}" stroke="${symColor}" stroke-width="2"/>`;
+                            svg += `<line x1="${symX-5}" y1="${symY}" x2="${symX+5}" y2="${symY}" stroke="${symColor}" stroke-width="2"/>`;
+                            svg += `<line x1="${symX-2}" y1="${symY-4}" x2="${symX-2}" y2="${symY-4}" stroke="${symColor}" stroke-width="2"/>`;
+                        }
+                    }
+                }
             }
 
             // Add chip labels
@@ -910,8 +983,268 @@
             });
         }
 
+        let componentPackagesDB = null;
+        async function loadComponentPackagesDB() {
+            if (componentPackagesDB) return componentPackagesDB;
+            try {
+                const res = await fetch("/api/component_packages_db");
+                if (res.ok) {
+                    componentPackagesDB = await res.json();
+                }
+            } catch (e) { console.warn("Component DB fetch warning:", e); }
+            return componentPackagesDB;
+        }
+
+        // Helper to find full chip pinout structure in component_packages_db.json
+        function findComponentPinoutData(compName) {
+            if (!componentPackagesDB || typeof componentPackagesDB !== 'object') return null;
+            const cleanName = compName.split('.')[0].replace(/_/g, ' ').trim().toUpperCase();
+            const tokens = cleanName.split(' ').filter(t => t.length >= 3);
+
+            for (const [catName, catObj] of Object.entries(componentPackagesDB)) {
+                if (!catObj || typeof catObj !== 'object') continue;
+                for (const [chipKey, chipObj] of Object.entries(catObj)) {
+                    const ckUpper = chipKey.toUpperCase();
+                    if (cleanName.includes(ckUpper) || ckUpper.includes(cleanName) || tokens.some(t => ckUpper.includes(t))) {
+                        const pkgName = Object.keys(chipObj)[0];
+                        return { pkgName: pkgName, pinData: chipObj[pkgName], chipKey: chipKey };
+                    }
+                }
+            }
+            return null;
+        }
+
+        function renderConnectedComponentChips(connectedComponents, mcuOffset, mcuBodySize, svgSize) {
+            let container = document.getElementById('connected-chips-g');
+            const parentG = document.getElementById('viewport-g');
+            if (!parentG) return;
+
+            if (!container) {
+                container = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                container.setAttribute("id", "connected-chips-g");
+                parentG.appendChild(container);
+            }
+            container.innerHTML = ""; // Clear existing
+
+            let chipIndex = 0;
+            for (const [compName, compInfo] of Object.entries(connectedComponents)) {
+                // Find full chip pinout package from component_packages_db.json
+                const dbInfo = findComponentPinoutData(compName);
+                const pkgName = dbInfo ? dbInfo.pkgName : (compInfo.pkgName || 'SOIC');
+                const rawPinMap = dbInfo ? dbInfo.pinData : null;
+
+                // Build complete pin map for all chip pins
+                const fullPinList = [];
+                if (rawPinMap) {
+                    for (const [pinLabel, pinDetails] of Object.entries(rawPinMap)) {
+                        const pinNumStr = Object.keys(pinDetails)[0];
+                        const pinNum = parseInt(pinNumStr, 10);
+                        const rawType = Object.keys(pinDetails[pinNumStr])[0];
+                        fullPinList.push({ num: pinNum, label: pinLabel, rawType: rawType });
+                    }
+                    fullPinList.sort((a, b) => a.num - b.num);
+                } else {
+                    // Fallback to active connected pins
+                    (compInfo.pins || []).forEach((p, idx) => {
+                        fullPinList.push({ num: idx + 1, label: p.signal, protoType: p.protoType });
+                    });
+                }
+
+                const totalPins = fullPinList.length || 8;
+                const isDualRow = totalPins <= 28; // DIP/TSSOP dual row layout
+                const pinsPerSide = isDualRow ? Math.ceil(totalPins / 2) : Math.ceil(totalPins / 4);
+
+                const cWidth = isDualRow ? 110 : (pinsPerSide * 18 + 30);
+                const cHeight = isDualRow ? (pinsPerSide * 20 + 50) : (pinsPerSide * 18 + 30);
+
+                // Safe X/Y positioning relative to MCU to avoid superposition
+                const isRight = (chipIndex % 2 === 0);
+                const chipX = isRight ? (mcuOffset + mcuBodySize + 320) : (mcuOffset - 320 - cWidth);
+                const chipY = mcuOffset + (Math.floor(chipIndex / 2) * (cHeight + 80));
+                chipIndex++;
+
+                let chipSvg = `<g class="connected-component-ic" transform="translate(${chipX}, ${chipY})">`;
+
+                // Draw Component Chip Package Body
+                chipSvg += `<rect x="0" y="0" width="${cWidth}" height="${cHeight}" rx="10" fill="var(--chip-body)" stroke="var(--chip-border)" stroke-width="2.5"/>`;
+                // Pin 1 Dot Indicator
+                chipSvg += `<circle cx="16" cy="16" r="4" fill="var(--chip-border)"/>`;
+                // Chip Package Title
+                chipSvg += `<text x="${cWidth/2}" y="${cHeight/2 - 6}" font-family="Inter" font-size="12" font-weight="bold" fill="var(--text-main)" text-anchor="middle">${compName.split('.')[0].split('_')[0]}</text>`;
+                chipSvg += `<text x="${cWidth/2}" y="${cHeight/2 + 12}" font-family="JetBrains Mono" font-size="9" fill="var(--text-muted)" text-anchor="middle">${pkgName}</text>`;
+
+                // Render Full Pins around IC body
+                fullPinList.forEach((pData) => {
+                    const pinNum = pData.num;
+                    const pinLabel = pData.label;
+
+                    // Determine active protocol highlighting
+                    let pType = 'unused';
+                    const activeMatch = (compInfo.pins || []).find(ap => ap.signal.toUpperCase() === pinLabel.toUpperCase() || pinLabel.toUpperCase().includes(ap.signal.toUpperCase()));
+                    if (activeMatch) {
+                        pType = activeMatch.protoType || 'i2c';
+                    } else if (pinLabel.toUpperCase().includes('VCC') || pinLabel.toUpperCase().includes('VDD')) {
+                        pType = 'power';
+                    } else if (pinLabel.toUpperCase().includes('GND') || pinLabel.toUpperCase().includes('VSS')) {
+                        pType = 'gnd';
+                    }
+
+                    const pinColor = `var(--pin-${pType})`;
+                    let px, py, pw, ph, tx, ty, tAnchor;
+
+                    if (isDualRow) {
+                        // Dual Row (Left side 1..N/2, Right side N/2+1..N)
+                        const isLeft = pinNum <= pinsPerSide;
+                        const rowIdx = isLeft ? (pinNum - 1) : (totalPins - pinNum);
+                        const spacing = (cHeight - 45) / pinsPerSide;
+
+                        px = isLeft ? -22 : cWidth;
+                        py = 35 + (rowIdx * spacing);
+                        pw = 22;
+                        ph = 6;
+
+                        tx = isLeft ? (px - 6) : (px + pw + 6);
+                        ty = py + 4;
+                        tAnchor = isLeft ? "end" : "start";
+                    } else {
+                        // Quad Row (QFN / LQFP)
+                        const sideIdx = Math.floor((pinNum - 1) / pinsPerSide);
+                        const idx = (pinNum - 1) % pinsPerSide;
+                        const spacing = (cWidth - 30) / pinsPerSide;
+
+                        if (sideIdx === 0) { // Left
+                            px = -20; py = 25 + idx * spacing; pw = 20; ph = 6; tx = px - 6; ty = py + 4; tAnchor = "end";
+                        } else if (sideIdx === 1) { // Bottom
+                            px = 20 + idx * spacing; py = cHeight; pw = 6; ph = 20; tx = px + 3; ty = py + 28; tAnchor = "end";
+                        } else if (sideIdx === 2) { // Right
+                            px = cWidth; py = 25 + (pinsPerSide - 1 - idx) * spacing; pw = 20; ph = 6; tx = px + pw + 6; ty = py + 4; tAnchor = "start";
+                        } else { // Top
+                            px = 20 + (pinsPerSide - 1 - idx) * spacing; py = -20; pw = 6; ph = 20; tx = px + 3; ty = py - 8; tAnchor = "start";
+                        }
+                    }
+
+                    // Calculate if pin is on right side
+                    const isPinOnRight = isDualRow ? (pinNum > pinsPerSide) : (Math.floor((pinNum - 1) / pinsPerSide) === 2);
+
+                    // Render Pin Rect with exact ID and data attributes
+                    const pinDomId = `comp-pin-${compName.replace(/[^a-zA-Z0-9]/g, '_')}-${pinNum}`;
+                    chipSvg += `<rect id="${pinDomId}" class="pin" data-pin-x="${chipX + px + pw/2}" data-pin-y="${chipY + py + ph/2}" data-is-right="${isPinOnRight}" data-chip-top="${chipY}" x="${px}" y="${py}" width="${pw}" height="${ph}" fill="${pinColor}" rx="2"/>`;
+                    // Render Pin Label Text with target MCU Pin connection annotation
+                    const txtColor = (pType !== 'unused') ? 'var(--text-main)' : 'var(--text-muted)';
+                    let displayLabel = `${pinNum}:${pinLabel}`;
+                    if (activeMatch && activeMatch.mcuPin) {
+                        displayLabel = `${pinNum}:${pinLabel} ➔ MCU [${activeMatch.mcuPin}]`;
+                    }
+                    chipSvg += `<text x="${tx}" y="${ty}" font-family="JetBrains Mono" font-size="8.5" font-weight="${activeMatch ? 'bold' : 'normal'}" fill="${txtColor}" text-anchor="${tAnchor}">${displayLabel}</text>`;
+                });
+
+                chipSvg += `</g>`;
+                container.innerHTML += chipSvg;
+            }
+
+            // Calculate exact pin coordinates for deterministic non-intersecting wire routing
+            const netConnections = [];
+            let netIdx = 0;
+            for (const [compName, compInfo] of Object.entries(connectedComponents)) {
+                (compInfo.pins || []).forEach(p => {
+                    if (!p.mcuPin) return;
+
+                    // Find MCU pin element on DOM
+                    const mcuPinEntry = Object.entries(currentPinMap).find(([num, pData]) => pData.name.toUpperCase() === p.mcuPin.toUpperCase());
+                    if (!mcuPinEntry) return;
+
+                    const mcuPinNum = mcuPinEntry[0];
+                    const mcuPinEl = document.getElementById(`pin-${mcuPinNum}`);
+                    if (!mcuPinEl) return;
+
+                    const x1 = parseFloat(mcuPinEl.getAttribute('x')) + parseFloat(mcuPinEl.getAttribute('width')) / 2;
+                    const y1 = parseFloat(mcuPinEl.getAttribute('y')) + parseFloat(mcuPinEl.getAttribute('height')) / 2;
+
+                    // Find target component pin element on DOM
+                    const dbInfo = findComponentPinoutData(compName);
+                    let targetPinNum = 1;
+                    if (dbInfo && dbInfo.pinData) {
+                        for (const [pLabel, pDetails] of Object.entries(dbInfo.pinData)) {
+                            if (pLabel.toUpperCase() === p.signal.toUpperCase()) {
+                                targetPinNum = parseInt(Object.keys(pDetails)[0], 10);
+                                break;
+                            }
+                        }
+                    }
+
+                    const targetDomId = `comp-pin-${compName.replace(/[^a-zA-Z0-9]/g, '_')}-${targetPinNum}`;
+                    const targetEl = document.getElementById(targetDomId);
+                    
+                    let x2, y2, chipTopY = 200, isTargetRightSide = false;
+                    if (targetEl) {
+                        x2 = parseFloat(targetEl.getAttribute('data-pin-x'));
+                        y2 = parseFloat(targetEl.getAttribute('data-pin-y'));
+                        chipTopY = parseFloat(targetEl.getAttribute('data-chip-top'));
+                        isTargetRightSide = (targetEl.getAttribute('data-is-right') === 'true');
+                    } else {
+                        const isRight = (Object.keys(connectedComponents).indexOf(compName) % 2 === 0);
+                        x2 = isRight ? (mcuOffset + mcuBodySize + 320) : (mcuOffset - 320);
+                        y2 = mcuOffset + 60;
+                    }
+
+                    netConnections.push({
+                        x1: x1, y1: y1,
+                        x2: x2, y2: y2,
+                        chipTopY: chipTopY,
+                        isTargetRightSide: isTargetRightSide,
+                        protoType: p.protoType || 'i2c',
+                        netIndex: netIdx++
+                    });
+                });
+            }
+
+            renderRoutedConnectionWires(netConnections);
+        }
+
+        // Universal Deterministic Non-Intersecting Wire Router
+        function drawDeterministicWireRoute(x1, y1, x2, y2, chipTopY, isTargetRightSide, protoType = 'i2c', netIndex = 0) {
+            const color = `var(--pin-${protoType})`;
+            const channelOffset = 60 + (netIndex * 14);
+            let pathD = "";
+
+            if (isTargetRightSide) {
+                // Target pin is on the OUTER (right) side of the chip: route cleanly OVER TOP of the chip body
+                const midX = x1 + channelOffset;
+                const topChannelY = Math.min(y1, y2, chipTopY) - 35 - (netIndex * 14);
+                const outerRightX = x2 + 35 + (netIndex * 14);
+
+                pathD = `M ${x1},${y1} L ${midX},${y1} L ${midX},${topChannelY} L ${outerRightX},${topChannelY} L ${outerRightX},${y2} L ${x2},${y2}`;
+            } else {
+                // Target pin is on the INNER (left) side: direct orthogonal channel
+                let midX = (x1 < x2) ? (x1 + channelOffset) : (x1 - channelOffset);
+                pathD = `M ${x1},${y1} L ${midX},${y1} L ${midX},${y2} L ${x2},${y2}`;
+            }
+            
+            return `<path d="${pathD}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.95" filter="drop-shadow(0 0 4px ${color})"/>`;
+        }
+
+        function renderRoutedConnectionWires(netConnections) {
+            let container = document.getElementById('routed-wires-g');
+            const parentG = document.getElementById('viewport-g');
+            if (!parentG) return;
+
+            if (!container) {
+                container = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                container.setAttribute("id", "routed-wires-g");
+                // Insert wires behind chips
+                parentG.insertBefore(container, parentG.firstChild);
+            }
+            container.innerHTML = ""; // Clear existing
+
+            netConnections.forEach((net) => {
+                const wireSvg = drawDeterministicWireRoute(net.x1, net.y1, net.x2, net.y2, net.chipTopY, net.isTargetRightSide, net.protoType, net.netIndex);
+                container.innerHTML += wireSvg;
+            });
+        }
+
         function startLivePolling(email, projectName, mcuName) {
             if (livePollingInterval) clearInterval(livePollingInterval);
+            loadComponentPackagesDB();
 
             livePollingInterval = setInterval(async () => {
                 try {
@@ -993,6 +1326,7 @@
                             }
                         } catch(e) { parseProtocols(liveData); }
 
+                        const connectedComponents = {};
                         for (const [pinNum, pData] of Object.entries(currentPinMap)) {
                             if (pData.type === 'power' || pData.type === 'gnd') continue;
 
@@ -1007,6 +1341,18 @@
                                 pData.fullRole = info.fullRole;
 
                                 el.setAttribute('fill', `var(--pin-${info.protoType})`);
+
+                                // Collect connected component details for rendering non-overlapping IC blocks
+                                if (info.component && info.component !== mcuName) {
+                                    if (!connectedComponents[info.component]) {
+                                        connectedComponents[info.component] = { pkgName: 'Peripheral IC', pins: [] };
+                                    }
+                                    connectedComponents[info.component].pins.push({
+                                        signal: info.signalName,
+                                        mcuPin: pData.name,
+                                        protoType: info.protoType
+                                    });
+                                }
 
                                 // Update text label on SVG if available
                                 const textEl = el.nextElementSibling;
@@ -1029,6 +1375,13 @@
                                 }
                             }
                         }
+
+                        // Render connected component IC packages dynamically on the canvas without superposition
+                        const actualPins = Math.ceil(Object.keys(currentPinMap).length / 4) * 4;
+                        const pinsPerSide = actualPins / 4;
+                        const bodySize = (pinsPerSide * 20) + 40;
+                        const offset = (800 - bodySize) / 2;
+                        renderConnectedComponentChips(connectedComponents, offset, bodySize, 800);
                     }
                 } catch (err) {
                     console.error("Live polling error:", err);
