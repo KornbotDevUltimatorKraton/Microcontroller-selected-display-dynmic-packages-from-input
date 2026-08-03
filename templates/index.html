@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive IC Pinout Highlighter</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+
+            --pin-unused:   #475569;
+            --pin-power:    #ef4444;
+            --pin-gnd:      #eab308;
+            --pin-active:   #22c55e;
+            --pin-i2c:      #3b82f6;
+            --pin-spi:      #a855f7;
+            --pin-uart:     #06b6d4;
+            --pin-can:      #f59e0b;
+            --pin-pwm:      #f97316;
+            --pin-adc:      #ec4899;
+            --pin-conflict: #f43f5e;
+            --pin-hover:    #ffffff;
+
+            --chip-body:   #1e293b;
+            --chip-border: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            background-image: radial-gradient(circle at 50% -20%, #1e3a8a 0%, #0f172a 100%);
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 1600px;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        header .highlight {
+            color: var(--accent);
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        main {
+            display: flex;
+            gap: 2rem;
+            align-items: flex-start;
+        }
+
+        .canvas-wrapper {
+            flex: 1;
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 0;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            height: 75vh;
+            min-height: 650px;
+            overflow: hidden;
+            cursor: grab;
+            user-select: none;
+        }
+
+        .canvas-wrapper.panning {
+            cursor: grabbing;
+        }
+
+        #chip-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0; left: 0;
+        }
+
+        .zoom-controls {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            display: flex;
+            gap: 8px;
+            z-index: 50;
+        }
+
+        .zoom-btn {
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(8px);
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .zoom-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .zoom-btn:active {
+            transform: scale(0.95);
+        }
+
+        .pin {
+            transition: fill 0.3s ease, transform 0.1s ease;
+            cursor: pointer;
+        }
+
+        .pin:hover {
+            fill: var(--pin-hover) !important;
+        }
+
+        /* Tooltip styles */
+        .tooltip {
+            position: absolute;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            width: 220px;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            backdrop-filter: blur(8px);
+        }
+
+        .tooltip.hidden {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+
+        .tooltip-header {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 0.5rem;
+        }
+
+        .tt-num {
+            background: var(--accent);
+            color: white;
+            font-family: 'JetBrains Mono', monospace;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .tt-name {
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+        }
+
+        .tt-desc {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .tt-status {
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        /* Sidebar */
+        .glassmorphism {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+        }
+
+        .controls-panel {
+            width: 350px;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .controls-panel h2 {
+            font-size: 1.5rem;
+        }
+
+        .controls-panel p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        select,
+        input {
+            background: #0f172a;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            font-family: 'Inter', sans-serif;
+        }
+
+        select:focus,
+        input:focus {
+            border-color: var(--accent);
+        }
+
+        .primary-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            margin-top: 0.5rem;
+        }
+
+        .primary-btn:hover {
+            background: #2563eb;
+        }
+
+        .primary-btn:active {
+            transform: scale(0.98);
+        }
+
+        .status-msg {
+            font-size: 0.85rem;
+            text-align: center;
+            color: var(--pin-active);
+            min-height: 1.2rem;
+        }
+
+        /* ── Legend ─────────────────────────────────────── */
+        .legend {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 1.25rem;
+        }
+
+        .legend h3 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .legend ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+        }
+
+        .legend li {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .legend-swatch {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .color-box {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            display: inline-block;
+            flex-shrink: 0;
+            box-shadow: 0 0 6px rgba(0,0,0,0.5);
+        }
+
+        .color-box.unused   { background: var(--pin-unused); }
+        .color-box.power    { background: var(--pin-power); }
+        .color-box.gnd      { background: var(--pin-gnd); }
+        .color-box.active   { background: var(--pin-active); box-shadow: 0 0 8px var(--pin-active); }
+        .color-box.i2c      { background: var(--pin-i2c); box-shadow: 0 0 8px var(--pin-i2c); }
+        .color-box.spi      { background: var(--pin-spi); box-shadow: 0 0 8px var(--pin-spi); }
+        .color-box.uart     { background: var(--pin-uart); box-shadow: 0 0 8px var(--pin-uart); }
+        .color-box.can      { background: var(--pin-can); box-shadow: 0 0 8px var(--pin-can); }
+        .color-box.pwm      { background: var(--pin-pwm); box-shadow: 0 0 8px var(--pin-pwm); }
+        .color-box.adc      { background: var(--pin-adc); box-shadow: 0 0 8px var(--pin-adc); }
+        .color-box.conflict { background: var(--pin-conflict); }
+
+        .legend-sign {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            min-width: 28px;
+        }
+
+        .legend-desc {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .legend-desc strong {
+            font-size: 0.88rem;
+            color: var(--text-main);
+        }
+
+        .legend-desc span {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        /* ── Live Status Button ─────────────────────────── */
+        .secondary-btn {
+            background: transparent;
+            color: var(--pin-active);
+            border: 1.5px solid var(--pin-active);
+            padding: 0.65rem 1.25rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s, transform 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .secondary-btn:hover {
+            background: var(--pin-active);
+            color: #0f172a;
+        }
+
+        .secondary-btn:active {
+            transform: scale(0.97);
+        }
+
+        .secondary-btn .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%       { opacity: 0.4; transform: scale(0.7); }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <h1>RoboReactor <span class="highlight">Dynamic Pinout</span></h1>
+            <p>Connect to the backend database to dynamically render any microcontroller package and view real-time GPIO
+                status.</p>
+        </header>
+
+        <main>
+            <div class="canvas-wrapper">
+                <div id="chip-container">
+                    <!-- SVG will be dynamically generated by JS -->
+                </div>
+
+                <div class="zoom-controls">
+                    <button id="btn-zoom-in" class="zoom-btn" title="Zoom In">+</button>
+                    <button id="btn-zoom-out" class="zoom-btn" title="Zoom Out">−</button>
+                    <button id="btn-zoom-reset" class="zoom-btn" title="Reset View">⟲</button>
+                </div>
+
+                <div id="tooltip" class="tooltip hidden">
+                    <div class="tooltip-header">
+                        <span id="tt-pin-num" class="tt-num">#1</span>
+                        <span id="tt-pin-name" class="tt-name">VBAT</span>
+                    </div>
+                    <div id="tt-pin-desc" class="tt-desc">Power Supply</div>
+                    <div id="tt-pin-status" class="tt-status">Status: Unused</div>
+                </div>
+            </div>
+
+            <aside class="controls-panel glassmorphism">
+                <h2>Live Pinout Status</h2>
+                <p>Real-time MCU GPIO connection monitor.</p>
+
+                <!-- Hidden inputs populated by server base64 endpoint -->
+                <input type="hidden" id="api-email" value="">
+                <input type="hidden" id="api-project" value="">
+                <input type="hidden" id="api-mcu" value="">
+
+                <button id="btn-live-status" class="secondary-btn" style="width: 100%;">
+                    <span class="pulse-dot"></span> Render Live Status
+                </button>
+                <div id="connection-status" class="status-msg"></div>
+
+                <div class="legend">
+                    <h3>📌 Live Status Legend</h3>
+                    <ul>
+                        <li>
+                            <div class="legend-swatch"><span class="color-box unused"></span><span class="legend-sign">NC</span></div>
+                            <div class="legend-desc"><strong>Unused / No Connect</strong><span>Pin unassigned.</span></div>
+                        </li>
+                        <li>
+                            <div class="legend-swatch"><span class="color-box power"></span><span class="legend-sign">VCC</span></div>
+                            <div class="legend-desc"><strong>Power Rail (VCC/VDD)</strong><span>Supply voltage.</span></div>
+                        </li>
+                        <li>
+                            <div class="legend-swatch"><span class="color-box gnd"></span><span class="legend-sign">GND</span></div>
+                            <div class="legend-desc"><strong>Ground (VSS/GND)</strong><span>Common ground.</span></div>
+                        </li>
+                        <li>
+                            <div class="legend-swatch"><span class="color-box i2c"></span><span class="legend-sign">I2C</span></div>
+                            <div class="legend-desc"><strong>I2C Bus (SCL / SDA)</strong><span>I2C communication pin.</span></div>
+                        </li>
+                        <li>
+                            <div class="legend-swatch"><span class="color-box spi"></span><span class="legend-sign">SPI</span></div>
+                            <div class="legend-desc"><strong>SPI Bus (SCK/MISO/MOSI)</strong><span>SPI bus pin.</span></div>
+                        </li>
+                        <li>
+                            <div class="legend-swatch"><span class="color-box uart"></span><span class="legend-sign">UART</span></div>
+                            <div class="legend-desc"><strong>UART Serial (TX / RX)</strong><span>Serial communication.</span></div>
+                        </li>
+                        <li>
+                            <div class="legend-swatch"><span class="color-box can"></span><span class="legend-sign">CAN</span></div>
+                            <div class="legend-desc"><strong>CAN Bus (TX / RX)</strong><span>Controller Area Network.</span></div>
+                        </li>
+                        <li>
+                            <div class="legend-swatch"><span class="color-box pwm"></span><span class="legend-sign">PWM</span></div>
+                            <div class="legend-desc"><strong>PWM / Servo Output</strong><span>Pulse-width modulation.</span></div>
+                        </li>
+                        <li>
+                            <div class="legend-swatch"><span class="color-box adc"></span><span class="legend-sign">ADC</span></div>
+                            <div class="legend-desc"><strong>Analog Input (ADC)</strong><span>Analog sensor input.</span></div>
+                        </li>
+                        <li>
+                            <div class="legend-swatch"><span class="color-box active"></span><span class="legend-sign">GPIO</span></div>
+                            <div class="legend-desc"><strong>General Digital I/O</strong><span>Active digital GPIO.</span></div>
+                        </li>
+                    </ul>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <script>
+        let livePollingInterval = null;
+        let currentPinMap = {};
+
+        // Viewport Pan & Zoom State
+        let currentPanX = 0;
+        let currentPanY = 0;
+        let currentZoom = 1;
+        let isPanning = false;
+        let startPanX = 0;
+        let startPanY = 0;
+
+        function updateViewportTransform() {
+            const g = document.getElementById('viewport-g');
+            if (g) g.setAttribute('transform', `translate(${currentPanX}, ${currentPanY}) scale(${currentZoom})`);
+        }
+
+        function setupPanAndZoom() {
+            const wrapper = document.querySelector('.canvas-wrapper');
+            const btnIn  = document.getElementById('btn-zoom-in');
+            const btnOut = document.getElementById('btn-zoom-out');
+            const btnReset = document.getElementById('btn-zoom-reset');
+
+            if (btnIn) btnIn.onclick = (e) => { e.stopPropagation(); currentZoom = Math.min(currentZoom * 1.25, 8); updateViewportTransform(); };
+            if (btnOut) btnOut.onclick = (e) => { e.stopPropagation(); currentZoom = Math.max(currentZoom / 1.25, 0.2); updateViewportTransform(); };
+            if (btnReset) btnReset.onclick = (e) => { e.stopPropagation(); currentPanX = 0; currentPanY = 0; currentZoom = 1; updateViewportTransform(); };
+
+            // Mouse-wheel zoom centered on cursor position using SVG CTM matrix
+            wrapper.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const svgEl = document.querySelector('#chip-container svg');
+                if (!svgEl) return;
+
+                const pt = svgEl.createSVGPoint();
+                pt.x = e.clientX;
+                pt.y = e.clientY;
+                const ctm = svgEl.getScreenCTM();
+                if (!ctm) return;
+                const svgPt = pt.matrixTransform(ctm.inverse());
+
+                const factor = e.deltaY < 0 ? 1.15 : 0.87;
+                const oldZoom = currentZoom;
+                const newZoom = Math.min(Math.max(oldZoom * factor, 0.2), 8);
+
+                // Anchor pan so cursor stays on same SVG point after zoom
+                const px = (svgPt.x - currentPanX) / oldZoom;
+                const py = (svgPt.y - currentPanY) / oldZoom;
+                currentPanX = svgPt.x - px * newZoom;
+                currentPanY = svgPt.y - py * newZoom;
+                currentZoom = newZoom;
+                updateViewportTransform();
+            }, { passive: false });
+
+            // Drag-to-pan on background
+            wrapper.addEventListener('mousedown', (e) => {
+                if (e.target.closest('.zoom-controls') || e.target.closest('#tooltip')) return;
+                isPanning = true;
+                wrapper.classList.add('panning');
+                startPanX = e.clientX - currentPanX;
+                startPanY = e.clientY - currentPanY;
+            });
+            window.addEventListener('mousemove', (e) => {
+                if (!isPanning) return;
+                currentPanX = e.clientX - startPanX;
+                currentPanY = e.clientY - startPanY;
+                updateViewportTransform();
+            });
+            window.addEventListener('mouseup', () => {
+                if (isPanning) { isPanning = false; wrapper.classList.remove('panning'); }
+            });
+        }
+
+        // ── Core render logic (shared by button click & preload) ────────────
+        async function renderAndConnect(email, projectName, mcuName) {
+            const statusMsg = document.getElementById('connection-status');
+            statusMsg.textContent = "Connecting to database...";
+            statusMsg.style.color = "var(--text-muted)";
+
+            try {
+                // 1. Fetch MCU Structure via local proxy to bypass CORS
+                const response = await fetch("/api/mcus_dbpath", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        email: email,
+                        project_name: projectName,
+                        mcusdata: mcuName
+                    })
+                });
+
+                if (!response.ok) throw new Error("API Network Response was not ok");
+                const dbData = await response.json();
+
+                // 2. Parse Nested JSON safely
+                const userObj = dbData[email];
+                if (!userObj) throw new Error("Email not found in DB");
+
+                const projectObj = userObj[projectName];
+                if (!projectObj) throw new Error("Project not found in DB");
+
+                // Find the MCU json key using smart fuzzy matching (e.g. RET6 matches RETx.json)
+                const keys = Object.keys(projectObj);
+                let mcuFileKey = keys.find(k => k.toLowerCase().includes(mcuName.toLowerCase()));
+
+                if (!mcuFileKey) {
+                    const baseName = mcuName.substring(0, mcuName.length - 1);
+                    mcuFileKey = keys.find(k => k.toLowerCase().includes(baseName.toLowerCase()));
+                }
+                if (!mcuFileKey) {
+                    const prefix = mcuName.substring(0, Math.min(mcuName.length, 9));
+                    mcuFileKey = keys.find(k => k.toLowerCase().includes(prefix.toLowerCase()));
+                }
+                if (!mcuFileKey && keys.length > 0) mcuFileKey = keys[0];
+                if (!mcuFileKey) throw new Error("No MCU data found in this project");
+
+                const mcuObj = projectObj[mcuFileKey];
+
+                // Universal Recursive Package Finder: Discovers any chip package (LQFP, QFN, DIP, BGA, SOIC, TSSOP)
+                let pinsData = null;
+                let packageName = "CHIP_PACKAGE";
+
+                function searchPackage(obj) {
+                    if (!obj || typeof obj !== 'object') return null;
+                    const keys = Object.keys(obj);
+                    for (const key of keys) {
+                        const val = obj[key];
+                        if (val && typeof val === 'object') {
+                            const subKeys = Object.keys(val);
+                            if (subKeys.length > 0) {
+                                const firstSubVal = val[subKeys[0]];
+                                if (firstSubVal && typeof firstSubVal === 'object') {
+                                    const pinNumStr = Object.keys(firstSubVal)[0];
+                                    if (pinNumStr && !isNaN(parseInt(pinNumStr, 10))) {
+                                        packageName = key;
+                                        return val;
+                                    }
+                                }
+                            }
+                        }
+                        const found = searchPackage(val);
+                        if (found) return found;
+                    }
+                    return null;
+                }
+
+                pinsData = searchPackage(mcuObj);
+                if (!pinsData) throw new Error("Could not parse pin dataset from MCU package structure");
+
+                console.log(`Loaded Package: ${packageName}`);
+
+                // Map pin data
+                const pinMap = {};
+                let maxPin = 0;
+
+                for (const [label, pinInfo] of Object.entries(pinsData)) {
+                    const pinNumStr = Object.keys(pinInfo)[0];
+                    const pinNum    = parseInt(pinNumStr, 10);
+                    if (isNaN(pinNum)) continue;
+                    if (pinNum > maxPin) maxPin = pinNum;
+
+                    const typeObj = pinInfo[pinNumStr];
+                    const typeStr = Object.keys(typeObj)[0];
+
+                    let visualType = 'unused';
+                    if (typeStr === 'Power') visualType = 'power';
+                    if (label.toUpperCase().includes('VSS') || label.toUpperCase().includes('GND')) visualType = 'gnd';
+
+                    const cleanLabel = label.split('/')[0].trim();
+                    pinMap[pinNum] = {
+                        name:    cleanLabel,
+                        type:    visualType,
+                        rawType: typeStr,
+                        desc:    typeStr === 'I/O' ? 'General Purpose I/O' : typeStr
+                    };
+                }
+
+                currentPinMap = pinMap;
+
+                // 3. Generate the Dynamic SVG
+                generateSVG(maxPin, pinMap, mcuName, packageName);
+                statusMsg.textContent = `✔ Package ${packageName} loaded — polling live GPIO data…`;
+                statusMsg.style.color = "var(--pin-active)";
+
+                // Show the dedicated Live Status button
+                const btnLs = document.getElementById('btn-live-status'); if (btnLs) btnLs.style.display = 'flex';
+
+                // 4. Start Live Polling for GPIOs
+                startLivePolling(email, projectName, mcuName);
+
+            } catch (error) {
+                console.error(error);
+                const statusMsg = document.getElementById('connection-status');
+                statusMsg.textContent = `✖ Error: ${error.message}`;
+                statusMsg.style.color = "var(--pin-conflict)";
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupTooltips();
+            setupPanAndZoom();
+
+            const btnLiveStatus = document.getElementById('btn-live-status');
+
+            // ── Render Live Status button (re-polls immediately) ───────────────
+            if (btnLiveStatus) {
+                btnLiveStatus.addEventListener('click', () => {
+                    const email       = document.getElementById('api-email').value.trim();
+                    const projectName = document.getElementById('api-project').value.trim();
+                    const mcuName     = document.getElementById('api-mcu').value.trim();
+                    if (email && projectName && mcuName) {
+                        startLivePolling(email, projectName, mcuName);
+                        const statusMsg = document.getElementById('connection-status');
+                        statusMsg.textContent = '🔄 Live status refresh triggered…';
+                        statusMsg.style.color = 'var(--pin-active)';
+                    }
+                });
+            }
+
+            // ── Auto-load from hidden inputs or preload-config right away ───────
+            let email       = document.getElementById('api-email') ? document.getElementById('api-email').value.trim() : '';
+            let projectName = document.getElementById('api-project') ? document.getElementById('api-project').value.trim() : '';
+            let mcuName     = document.getElementById('api-mcu') ? document.getElementById('api-mcu').value.trim() : '';
+
+            const preloadEl = document.getElementById('preload-config');
+            if (preloadEl) {
+                try {
+                    const cfg = JSON.parse(preloadEl.textContent);
+                    if (cfg.email) email = cfg.email;
+                    if (cfg.project_name) projectName = cfg.project_name;
+                    if (cfg.mcus || cfg.mcu) mcuName = cfg.mcus || cfg.mcu;
+
+                    if (document.getElementById('api-email')) document.getElementById('api-email').value = email;
+                    if (document.getElementById('api-project')) document.getElementById('api-project').value = projectName;
+                    if (document.getElementById('api-mcu')) document.getElementById('api-mcu').value = mcuName;
+                } catch (e) {
+                    console.warn('preload-config parse error:', e);
+                }
+            }
+
+            if (email && projectName && mcuName) {
+                renderAndConnect(email, projectName, mcuName);
+            }
+        });
+
+        function generateSVG(totalPins, pinMap, mcuName, packageName) {
+            const container = document.getElementById('chip-container');
+            // Force total pins to be a multiple of 4 for a square package
+            const actualPins = Math.ceil(totalPins / 4) * 4;
+            const pinsPerSide = actualPins / 4;
+
+            // Calculate body size based on number of pins
+            // Increased SVG size to accommodate text labels around the edges
+            const svgSize = 800;
+            const pinSpacing = 20;
+            const pinLength = 35;
+            const pinWidth = 8;
+
+            const bodySize = (pinsPerSide * pinSpacing) + 40;
+            const offset = (svgSize - bodySize) / 2;
+
+            let svg = `<svg width="100%" height="100%" viewBox="0 0 ${svgSize} ${svgSize}" xmlns="http://www.w3.org/2000/svg">`;
+            svg += `<g id="viewport-g" transform="translate(${currentPanX}, ${currentPanY}) scale(${currentZoom})">`;
+
+            // Draw Chip Body
+            svg += `<rect x="${offset}" y="${offset}" width="${bodySize}" height="${bodySize}" rx="12" fill="var(--chip-body)" stroke="var(--chip-border)" stroke-width="3"/>`;
+            // Pin 1 Indicator (Dot)
+            svg += `<circle cx="${offset + 25}" cy="${offset + 25}" r="6" fill="var(--chip-border)"/>`;
+
+            const startX = offset + (bodySize - (pinsPerSide * pinSpacing)) / 2 + (pinSpacing / 2);
+            const startY = offset + (bodySize - (pinsPerSide * pinSpacing)) / 2 + (pinSpacing / 2);
+
+            for (let i = 1; i <= actualPins; i++) {
+                let x, y, width, height;
+                let sideIndex;
+
+                if (i <= pinsPerSide) {
+                    // Left Side
+                    sideIndex = i - 1;
+                    x = offset - pinLength;
+                    y = startY + (sideIndex * pinSpacing) - (pinWidth / 2);
+                    width = pinLength;
+                    height = pinWidth;
+                } else if (i <= pinsPerSide * 2) {
+                    // Bottom Side
+                    sideIndex = i - pinsPerSide - 1;
+                    x = startX + (sideIndex * pinSpacing) - (pinWidth / 2);
+                    y = offset + bodySize;
+                    width = pinWidth;
+                    height = pinLength;
+                } else if (i <= pinsPerSide * 3) {
+                    // Right Side
+                    sideIndex = (pinsPerSide * 3) - i; // bottom to top
+                    x = offset + bodySize;
+                    y = startY + (sideIndex * pinSpacing) - (pinWidth / 2);
+                    width = pinLength;
+                    height = pinWidth;
+                } else {
+                    // Top Side
+                    sideIndex = (pinsPerSide * 4) - i; // right to left
+                    x = startX + (sideIndex * pinSpacing) - (pinWidth / 2);
+                    y = offset - pinLength;
+                    width = pinWidth;
+                    height = pinLength;
+                }
+
+                // Use mapped data if it exists, otherwise it's NC (No Connect)
+                const pData = pinMap[i] || { name: `NC`, type: 'unused', desc: 'No Connect' };
+                const pinColor = `var(--pin-${pData.type})`;
+
+                svg += `<rect id="pin-${i}" class="pin" data-pin="${i}" x="${x}" y="${y}" width="${width}" height="${height}" fill="${pinColor}" rx="3"/>`;
+
+                // Add permanent text label for the pin
+                let labelX, labelY, anchor, transform = "";
+                const textOffset = 8;
+
+                if (i <= pinsPerSide) {
+                    // Left Side
+                    labelX = x - textOffset;
+                    labelY = y + (height / 2);
+                    anchor = "end";
+                } else if (i <= pinsPerSide * 2) {
+                    // Bottom Side
+                    labelX = x + (width / 2);
+                    labelY = y + height + textOffset;
+                    anchor = "end";
+                    transform = `transform="rotate(-90 ${labelX} ${labelY})"`;
+                } else if (i <= pinsPerSide * 3) {
+                    // Right Side
+                    labelX = x + width + textOffset;
+                    labelY = y + (height / 2);
+                    anchor = "start";
+                } else {
+                    // Top Side
+                    labelX = x + (width / 2);
+                    labelY = y - textOffset;
+                    anchor = "start";
+                    transform = `transform="rotate(-90 ${labelX} ${labelY})"`;
+                }
+
+                // Only draw text if it's not a generic NC or we want all of them. Let's draw all.
+                // Make active pins brighter text
+                const textColor = (pData.type === 'active' || pData.type === 'power' || pData.type === 'gnd') ? 'var(--text-main)' : 'var(--text-muted)';
+                svg += `<text x="${labelX}" y="${labelY}" font-family="JetBrains Mono, monospace" font-size="10" fill="${textColor}" text-anchor="${anchor}" dominant-baseline="central" ${transform}>${pData.name}</text>`;
+            }
+
+            // Add chip labels
+            svg += `<text x="${svgSize / 2}" y="${svgSize / 2 - 15}" font-family="Inter" font-size="28" font-weight="bold" fill="var(--text-main)" text-anchor="middle">${mcuName}</text>`;
+            svg += `<text x="${svgSize / 2}" y="${svgSize / 2 + 25}" font-family="Inter" font-size="16" fill="var(--text-muted)" text-anchor="middle">${packageName}</text>`;
+
+            svg += `</g></svg>`;
+            container.innerHTML = svg;
+            updateViewportTransform();
+        }
+
+        function setupTooltips() {
+            const tooltip = document.getElementById('tooltip');
+            const ttNum = document.getElementById('tt-pin-num');
+            const ttName = document.getElementById('tt-pin-name');
+            const ttDesc = document.getElementById('tt-pin-desc');
+            const ttStatus = document.getElementById('tt-pin-status');
+            const wrapper = document.querySelector('.canvas-wrapper');
+
+            wrapper.addEventListener('mouseover', (e) => {
+                if (e.target && e.target.classList.contains('pin')) {
+                    const pinNum = e.target.getAttribute('data-pin');
+                    const data = currentPinMap[pinNum] || { name: `NC_${pinNum}`, type: 'unused', desc: 'No Connect' };
+
+                    ttNum.textContent = `#${pinNum}`;
+                    ttName.textContent = data.signalName ? `${data.name} (${data.signalName})` : data.name;
+
+                    if (data.fullRole) {
+                        ttDesc.innerHTML = `<span style="color:var(--accent); font-weight:600;">⚡ Signal: ${data.signalName || 'GPIO'}</span><br><span style="color:var(--text-muted); font-size:0.8rem;">🔌 Target: ${data.component || 'Connected Module'}</span>`;
+                    } else {
+                        ttDesc.textContent = data.desc;
+                    }
+
+                    let statusText = "Unused";
+                    if (data.type === 'power' || data.type === 'gnd') statusText = "Power / System Rail";
+                    else if (data.type === 'i2c') statusText = `Live Connected: I2C [${data.signalName || 'SCL/SDA'}]`;
+                    else if (data.type === 'spi') statusText = `Live Connected: SPI [${data.signalName || 'BUS'}]`;
+                    else if (data.type === 'uart') statusText = `Live Connected: UART [${data.signalName || 'TX/RX'}]`;
+                    else if (data.type === 'can') statusText = `Live Connected: CAN-BUS [${data.signalName || 'TX/RX'}]`;
+                    else if (data.type === 'pwm') statusText = `Live Connected: PWM [${data.signalName || 'OUT'}]`;
+                    else if (data.type === 'adc') statusText = `Live Connected: ADC [${data.signalName || 'IN'}]`;
+                    else if (data.type === 'active') statusText = `Live Connected: ${data.signalName || 'Digital GPIO'}`;
+
+                    ttStatus.textContent = `Status: ${statusText}`;
+                    ttNum.style.background = `var(--pin-${data.type})`;
+
+                    tooltip.classList.remove('hidden');
+                }
+            });
+
+            wrapper.addEventListener('mousemove', (e) => {
+                if (!tooltip.classList.contains('hidden')) {
+                    const rect = wrapper.getBoundingClientRect();
+                    tooltip.style.left = `${e.clientX - rect.left + 20}px`;
+                    tooltip.style.top = `${e.clientY - rect.top + 20}px`;
+                }
+            });
+
+            wrapper.addEventListener('mouseout', (e) => {
+                if (e.target && e.target.classList.contains('pin')) {
+                    tooltip.classList.add('hidden');
+                }
+            });
+        }
+
+        function startLivePolling(email, projectName, mcuName) {
+            if (livePollingInterval) clearInterval(livePollingInterval);
+
+            livePollingInterval = setInterval(async () => {
+                try {
+                    // Use local proxy to bypass CORS
+                    const response = await fetch("/api/get_component_gpios", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email, project_name: projectName, mcusdata: mcuName })
+                    });
+
+                    if (response.ok) {
+                        const liveData = await response.json();
+                        console.log("Live GPIO Data:", liveData);
+
+                        // Extremely robust string matching to find active GPIO labels in the response
+                        // Scope to the specific user/project/mcu to avoid false positives from other boards
+                        let mcuDataStr = "";
+                        try {
+                            const userObj = liveData[email];
+                            if (userObj) {
+                                const projObj = userObj[projectName];
+                                if (projObj) {
+                                    const keys = Object.keys(projObj);
+                                    const mcuKey = keys.find(k => k.toLowerCase().includes(mcuName.toLowerCase()))
+                                        || keys.find(k => k.toLowerCase().includes(mcuName.substring(0, mcuName.length - 1).toLowerCase()))
+                                        || keys[0];
+                                    if (mcuKey) {
+                                        mcuDataStr = JSON.stringify(projObj[mcuKey]);
+                                    }
+                                }
+                            }
+                        } catch (e) { }
+
+                        // Fallback to full string if parsing fails, but ideally scoped
+                        const jsonString = mcuDataStr || JSON.stringify(liveData);
+
+                        // Build recursive map of pin names to specific protocol & signal names
+                        const pinToProtocolMap = {};
+                        function parseProtocols(obj, currentProto = '', currentComponent = '') {
+                            if (!obj || typeof obj !== 'object') return;
+                            for (const [key, val] of Object.entries(obj)) {
+                                let proto = currentProto;
+                                let component = currentComponent;
+                                const kUpper = key.toUpperCase();
+
+                                if (key.includes('.glb') || key.includes('.gltf')) {
+                                    component = key.split('.')[0].replace(/_/g, ' ').trim();
+                                }
+
+                                if (kUpper.includes('I2C')) proto = 'i2c';
+                                else if (kUpper.includes('SPI') || kUpper.includes('MISO') || kUpper.includes('MOSI') || kUpper.includes('SCK')) proto = 'spi';
+                                else if (kUpper.includes('CAN') || kUpper.includes('CANBUS')) proto = 'can';
+                                else if (kUpper.includes('UART') || kUpper.includes('USART') || kUpper.includes('TX') || kUpper.includes('RX')) proto = 'uart';
+                                else if (kUpper.includes('PWM') || kUpper.includes('SERVO') || kUpper.includes('MOTOR')) proto = 'pwm';
+                                else if (kUpper.includes('ADC') || kUpper.includes('ANALOG') || kUpper.includes('READ')) proto = 'adc';
+                                else if (kUpper.includes('GPIO') || kUpper.includes('IO') || kUpper.includes('PIN')) proto = 'active';
+
+                                if (typeof val === 'string') {
+                                    const pinName = val.trim();
+                                    const signalName = key;
+                                    pinToProtocolMap[pinName] = {
+                                        protoType: proto || 'i2c',
+                                        signalName: signalName,
+                                        component: component,
+                                        fullRole: `${proto ? proto.toUpperCase() : 'GPIO'} - ${signalName}`
+                                    };
+                                } else if (typeof val === 'object') {
+                                    parseProtocols(val, proto, component);
+                                }
+                            }
+                        }
+
+                        try {
+                            const userObj = liveData[email];
+                            if (userObj && userObj[projectName]) {
+                                parseProtocols(userObj[projectName]);
+                            } else {
+                                parseProtocols(liveData);
+                            }
+                        } catch(e) { parseProtocols(liveData); }
+
+                        for (const [pinNum, pData] of Object.entries(currentPinMap)) {
+                            if (pData.type === 'power' || pData.type === 'gnd') continue;
+
+                            const el = document.getElementById(`pin-${pinNum}`);
+                            if (!el) continue;
+
+                            if (pinToProtocolMap[pData.name]) {
+                                const info = pinToProtocolMap[pData.name];
+                                pData.type = info.protoType;
+                                pData.signalName = info.signalName;
+                                pData.component = info.component;
+                                pData.fullRole = info.fullRole;
+
+                                el.setAttribute('fill', `var(--pin-${info.protoType})`);
+
+                                // Update text label on SVG if available
+                                const textEl = el.nextElementSibling;
+                                if (textEl && textEl.tagName === 'text') {
+                                    textEl.textContent = `${pData.name} [${info.signalName}]`;
+                                    textEl.setAttribute('fill', 'var(--text-main)');
+                                }
+                            } else {
+                                pData.signalName = null;
+                                pData.component = null;
+                                pData.fullRole = null;
+                                // Fallback regex matching in full payload
+                                const regex = new RegExp(`['"]${pData.name}['"]`);
+                                if (regex.test(jsonString)) {
+                                    pData.type = 'i2c';
+                                    el.setAttribute('fill', 'var(--pin-i2c)');
+                                } else {
+                                    pData.type = 'unused';
+                                    el.setAttribute('fill', 'var(--pin-unused)');
+                                }
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error("Live polling error:", err);
+                }
+            }, 2000); // Poll every 2 seconds
+        }
+    </script>
+</body>
+
+</html>
